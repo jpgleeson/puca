@@ -26,14 +26,26 @@ func main() {
 	defer rl.CloseWindow()
 
 	for !rl.WindowShouldClose() {
+
+		if rl.IsKeyDown(rl.KeyRight) {
+			camera.Position.X = camera.Position.X + 1
+		}
+		if rl.IsKeyDown(rl.KeyLeft) {
+			camera.Position.X = camera.Position.X - 1
+		}
+		if rl.IsKeyDown(rl.KeyUp) {
+			camera.Position.Z = camera.Position.Z + 1
+		}
+		if rl.IsKeyDown(rl.KeyDown) {
+			camera.Position.Z = camera.Position.Z - 1
+		}
+
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.LightGray)
 		rl.BeginMode3D(camera)
 		rl.DrawGrid(20, 10.0)
 		for _, face := range modelTriangles {
-			rl.DrawPoint3D(face.Point1, rl.Blue)
-			rl.DrawPoint3D(face.Point2, rl.Blue)
-			rl.DrawPoint3D(face.Point3, rl.Blue)
+			rl.DrawTriangle3D(face.Point1, face.Point2, face.Point3, rl.DarkGray)
 		}
 		rl.EndMode3D()
 		rl.EndDrawing()
