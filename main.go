@@ -112,7 +112,6 @@ func loadObjText() []modelFace {
 	for fileScanner.Scan() {
 		line := fileScanner.Text()
 		lineComponents := strings.Split(fileScanner.Text(), " ")
-		// fmt.Printf("line: %s\n", line)
 		lineType := lineComponents[0]
 		switch lineType {
 		// Lines that start with v are vertex declarations
@@ -123,7 +122,7 @@ func loadObjText() []modelFace {
 			vertices[verticeIndex] = rl.NewVector3(vertexX, vertexY, vertexZ)
 			verticeIndex = verticeIndex + 1
 		case "vn":
-			// fmt.Println("This line is a normal")
+			// Normals. Not needed yet
 		case "f":
 			point1Components := strings.Split(lineComponents[1], "/")
 			point2Components := strings.Split(lineComponents[2], "/")
