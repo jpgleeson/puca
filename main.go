@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -21,6 +22,10 @@ func main() {
 	camera.Fovy = 45.0
 	camera.Projection = rl.CameraPerspective
 
+	distance := float32(100)
+	theta := float64(0)
+	phi := float64(0)
+
 	modelTriangles := loadObjText()
 
 	defer rl.CloseWindow()
@@ -28,17 +33,27 @@ func main() {
 	for !rl.WindowShouldClose() {
 
 		if rl.IsKeyDown(rl.KeyRight) {
-			camera.Position.X = camera.Position.X + 1
+			theta += 0.01
 		}
 		if rl.IsKeyDown(rl.KeyLeft) {
-			camera.Position.X = camera.Position.X - 1
+			theta -= 0.01
 		}
 		if rl.IsKeyDown(rl.KeyUp) {
-			camera.Position.Z = camera.Position.Z + 1
+			phi += 0.01
 		}
 		if rl.IsKeyDown(rl.KeyDown) {
-			camera.Position.Z = camera.Position.Z - 1
+			phi -= 0.01
 		}
+		if rl.IsKeyPressed(rl.KeyPageUp) {
+			distance -= 10
+		}
+		if rl.IsKeyPressed(rl.KeyPageDown) {
+			distance += 10
+		}
+
+		camera.Position.X = distance * float32(math.Sin(theta)*math.Cos(phi))
+		camera.Position.Y = distance * float32(math.Sin(phi))
+		camera.Position.Z = distance * float32(math.Cos(theta)*math.Cos(phi))
 
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.LightGray)
