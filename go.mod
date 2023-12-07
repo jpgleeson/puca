@@ -2,7 +2,7 @@ module puca/main
 
 go 1.21.4
 
-replace github.com/gen2brain/raylib-go/raylib => /home/jack/src/raylib-go/raylib
+replace github.com/gen2brain/raylib-go/raylib => ../raylib-go/raylib
 
 require (
 	github.com/ebitengine/purego v0.6.0-alpha.2 // indirect

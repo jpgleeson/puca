@@ -30,8 +30,8 @@ func main() {
 	camera.Projection = rl.CameraPerspective
 
 	distance := float32(100)
-	theta := float64(0)
-	phi := float64(0)
+	theta := float64(0.2)
+	phi := float64(0.2)
 
 	modelOffset := rl.NewVector3(0, 0, 0)
 
