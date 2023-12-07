@@ -26,6 +26,8 @@ func main() {
 	theta := float64(0)
 	phi := float64(0)
 
+	modelOffset := rl.NewVector3(0, 0, 0)
+
 	modelTriangles := loadObjText()
 
 	defer rl.CloseWindow()
@@ -51,6 +53,19 @@ func main() {
 			distance += 10
 		}
 
+		if rl.IsKeyPressed(rl.KeyW) {
+			modelOffset.X += 10
+		}
+		if rl.IsKeyPressed(rl.KeyS) {
+			modelOffset.X -= 10
+		}
+		if rl.IsKeyPressed(rl.KeyA) {
+			modelOffset.Z += 10
+		}
+		if rl.IsKeyPressed(rl.KeyD) {
+			modelOffset.Z -= 10
+		}
+
 		camera.Position.X = distance * float32(math.Sin(theta)*math.Cos(phi))
 		camera.Position.Y = distance * float32(math.Sin(phi))
 		camera.Position.Z = distance * float32(math.Cos(theta)*math.Cos(phi))
@@ -60,7 +75,7 @@ func main() {
 		rl.BeginMode3D(camera)
 		rl.DrawGrid(20, 10.0)
 		for _, face := range modelTriangles {
-			rl.DrawTriangle3D(face.Point1, face.Point2, face.Point3, rl.DarkGray)
+			rl.DrawTriangle3D(OffsetVector3(face.Point1, modelOffset), OffsetVector3(face.Point2, modelOffset), OffsetVector3(face.Point3, modelOffset), rl.DarkGray)
 		}
 		rl.EndMode3D()
 		rl.EndDrawing()
@@ -71,6 +86,13 @@ type modelFace struct {
 	Point1 rl.Vector3
 	Point2 rl.Vector3
 	Point3 rl.Vector3
+}
+
+func OffsetVector3(vector rl.Vector3, offset rl.Vector3) rl.Vector3 {
+	vector.X = vector.X + offset.X
+	vector.Y = vector.Y + offset.Y
+	vector.Z = vector.Z + offset.Z
+	return vector
 }
 
 func loadObjText() []modelFace {
