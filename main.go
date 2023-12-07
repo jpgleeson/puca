@@ -14,6 +14,13 @@ import (
 
 func main() {
 	rl.InitWindow(800, 600, "puca")
+	rl.SetTargetFPS(60)
+
+	var modelPath string
+	if len(os.Args) > 1 {
+		modelPath = os.Args[1]
+	}
+	modelLoaded := true
 
 	camera := rl.Camera{}
 	camera.Position = rl.NewVector3(100.0, 10.0, 10.0)
@@ -28,7 +35,11 @@ func main() {
 
 	modelOffset := rl.NewVector3(0, 0, 0)
 
-	modelTriangles := loadObjText()
+	modelTriangles, err := loadObjText(modelPath)
+	if err != nil {
+		modelLoaded = false
+		modelPath = "Error loading model."
+	}
 
 	defer rl.CloseWindow()
 
@@ -74,10 +85,13 @@ func main() {
 		rl.ClearBackground(rl.LightGray)
 		rl.BeginMode3D(camera)
 		rl.DrawGrid(20, 10.0)
-		for _, face := range modelTriangles {
-			rl.DrawTriangle3D(OffsetVector3(face.Point1, modelOffset), OffsetVector3(face.Point2, modelOffset), OffsetVector3(face.Point3, modelOffset), rl.DarkGray)
+		if modelLoaded {
+			for _, face := range modelTriangles {
+				rl.DrawTriangle3D(OffsetVector3(face.Point1, modelOffset), OffsetVector3(face.Point2, modelOffset), OffsetVector3(face.Point3, modelOffset), rl.DarkGray)
+			}
 		}
 		rl.EndMode3D()
+		rl.DrawText(modelPath, 10, 10, 12, rl.Black)
 		rl.EndDrawing()
 	}
 }
@@ -95,15 +109,16 @@ func OffsetVector3(vector rl.Vector3, offset rl.Vector3) rl.Vector3 {
 	return vector
 }
 
-func loadObjText() []modelFace {
+func loadObjText(modelPath string) ([]modelFace, error) {
 	vertices := make(map[int]rl.Vector3)
 	verticeIndex := 1
 
 	faces := make([]modelFace, 0)
 
-	file, err := os.Open("Spearman.obj")
+	file, err := os.Open(modelPath)
 	if err != nil {
 		fmt.Println(err)
+		return nil, err
 	}
 	defer file.Close()
 
@@ -155,7 +170,7 @@ func loadObjText() []modelFace {
 		log.Fatal(err)
 	}
 
-	return faces
+	return faces, nil
 }
 
 func stringToFloat32(input string) float32 {
