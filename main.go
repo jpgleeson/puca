@@ -41,6 +41,8 @@ func main() {
 		modelPath = "Error loading model."
 	}
 
+	faceColours := makeNormalColourCache(modelTriangles)
+
 	defer rl.CloseWindow()
 
 	for !rl.WindowShouldClose() {
@@ -87,7 +89,7 @@ func main() {
 		rl.DrawGrid(20, 10.0)
 		if modelLoaded {
 			for _, face := range modelTriangles {
-				rl.DrawTriangle3D(OffsetVector3(face.Point1, modelOffset), OffsetVector3(face.Point2, modelOffset), OffsetVector3(face.Point3, modelOffset), rl.DarkGray)
+				rl.DrawTriangle3D(OffsetVector3(face.Point1, modelOffset), OffsetVector3(face.Point2, modelOffset), OffsetVector3(face.Point3, modelOffset), faceColours[face])
 			}
 		}
 		rl.EndMode3D()
@@ -100,6 +102,7 @@ type modelFace struct {
 	Point1 rl.Vector3
 	Point2 rl.Vector3
 	Point3 rl.Vector3
+	Normal rl.Vector3
 }
 
 func OffsetVector3(vector rl.Vector3, offset rl.Vector3) rl.Vector3 {
@@ -112,6 +115,9 @@ func OffsetVector3(vector rl.Vector3, offset rl.Vector3) rl.Vector3 {
 func loadObjText(modelPath string) ([]modelFace, error) {
 	vertices := make(map[int]rl.Vector3)
 	verticeIndex := 1
+
+	normals := make(map[int]rl.Vector3)
+	normalIndex := 1
 
 	faces := make([]modelFace, 0)
 
@@ -137,29 +143,39 @@ func loadObjText(modelPath string) ([]modelFace, error) {
 			vertices[verticeIndex] = rl.NewVector3(vertexX, vertexY, vertexZ)
 			verticeIndex = verticeIndex + 1
 		case "vn":
-			// Normals. Not needed yet
+			normalX := stringToFloat32(lineComponents[1])
+			normalY := stringToFloat32(lineComponents[2])
+			normalZ := stringToFloat32(lineComponents[3])
+			normals[normalIndex] = rl.NewVector3(normalX, normalY, normalZ)
+			normalIndex = normalIndex + 1
 		case "f":
-			point1Components := strings.Split(lineComponents[1], "/")
-			point2Components := strings.Split(lineComponents[2], "/")
-			point3Components := strings.Split(lineComponents[3], "/")
+			point1Components := strings.Split(lineComponents[1], "//")
+			point2Components := strings.Split(lineComponents[2], "//")
+			point3Components := strings.Split(lineComponents[3], "//")
 
-			point1Vertex, err := strconv.Atoi(point1Components[0])
+			point1Vertex, point1Normal, err := getVertexAndNormalIndices(point1Components)
 			if err != nil {
-				fmt.Println("Error converting to int")
+				fmt.Println("Error getting indices")
+				return nil, err
 			}
-			point2Vertex, err := strconv.Atoi(point2Components[0])
+			point2Vertex, point2Normal, err := getVertexAndNormalIndices(point2Components)
 			if err != nil {
-				fmt.Println("Error converting to int")
+				fmt.Println("Error getting indices")
+				return nil, err
 			}
-			point3Vertex, err := strconv.Atoi(point3Components[0])
+			point3Vertex, point3Normal, err := getVertexAndNormalIndices(point3Components)
 			if err != nil {
-				fmt.Println("Error converting to int")
+				fmt.Println("Error getting indices")
+				return nil, err
 			}
+
+			faceNormal := getFaceNormal(normals[point1Normal], normals[point2Normal], normals[point3Normal])
 
 			faces = append(faces, modelFace{
 				Point1: vertices[point1Vertex],
 				Point2: vertices[point2Vertex],
 				Point3: vertices[point3Vertex],
+				Normal: faceNormal,
 			})
 		default:
 			fmt.Sprintln("Unknown line type %s", line)
@@ -180,4 +196,41 @@ func stringToFloat32(input string) float32 {
 	}
 	floatValue := float32(parsedValue)
 	return floatValue
+}
+
+func getVertexAndNormalIndices(components []string) (int, int, error) {
+	vertex, err := strconv.Atoi(components[0])
+	if err != nil {
+		fmt.Println("Error converting vertex to int")
+	}
+	normal, err := strconv.Atoi(components[1])
+	if err != nil {
+		fmt.Println("Error converting normal to int")
+	}
+
+	return vertex, normal, err
+}
+
+func getFaceNormal(normal1 rl.Vector3, normal2 rl.Vector3, normal3 rl.Vector3) rl.Vector3 {
+	xNormal := (normal1.X + normal2.X + normal3.X) / 3
+	yNormal := (normal1.Y + normal2.Y + normal3.Y) / 3
+	zNormal := (normal1.Z + normal2.Z + normal3.Z) / 3
+
+	fmt.Sprintf("x normal %f, ynormal %f, znormal %f", xNormal, yNormal, zNormal)
+
+	return rl.NewVector3(xNormal, yNormal, zNormal)
+}
+
+func makeNormalColourCache(faces []modelFace) map[modelFace]rl.Color {
+	faceColours := make(map[modelFace]rl.Color)
+	for _, face := range faces {
+		faceColour := rl.NewColor(122, 122, 122, 255)
+
+		faceColour.R = faceColour.R + uint8(100*face.Normal.Y)
+		faceColour.G = faceColour.G + uint8(100*face.Normal.Y)
+		faceColour.B = faceColour.B + uint8(100*face.Normal.Y)
+
+		faceColours[face] = faceColour
+	}
+	return faceColours
 }
