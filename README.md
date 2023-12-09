@@ -5,4 +5,5 @@ puca is a model viewer.
 pass the file to be loaded as the first arg.
 
 # Features
-.obj support
+Text .obj support
+ASCII .stl support

@@ -63,7 +63,6 @@ func main() {
 		modelPoints = append(modelPoints, face.Point3)
 	}
 	boundingBox := CalculateBoundingBox(modelPoints)
-	fmt.Println(boundingBox)
 	xSpan := math.Abs(float64(boundingBox.Min.X)) + math.Abs(float64(boundingBox.Max.X))
 	ySpan := math.Abs(float64(boundingBox.Min.Y)) + math.Abs(float64(boundingBox.Max.Y))
 	zSpan := math.Abs(float64(boundingBox.Min.Z)) + math.Abs(float64(boundingBox.Max.Z))
@@ -74,7 +73,6 @@ func main() {
 	if maxSpan > 100 {
 		// clamping to 100 units in size
 		factor := math.Floor(maxSpan / 100)
-		fmt.Println(factor)
 		if factor != 0 {
 			ScaleModel(modelTriangles, float32(1/factor))
 		}

@@ -29,23 +29,16 @@ func LoadASCIISTL(modelPath string) ([]modelFace, error) {
 
 	for fileScanner.Scan() {
 		line := fileScanner.Text()
-		fmt.Println(line)
-		cleanedLine := strings.TrimLeftFunc(fileScanner.Text(), unicode.IsSpace)
+		cleanedLine := strings.TrimLeftFunc(line, unicode.IsSpace)
 		lineComponents := strings.Split(cleanedLine, " ")
 		lineType := lineComponents[0]
 		switch lineType {
-		case "solid":
-			// Starting an object. Should be the first line. Second component would be the name
 		case "facet":
 			normal = rl.NewVector3(stringToFloat32(lineComponents[2]), stringToFloat32(lineComponents[3]), stringToFloat32(lineComponents[4]))
-		case "outer":
-			// start of a triangle
 		case "vertex":
 			// This is a vertex.)
 			vertex := rl.NewVector3(stringToFloat32(lineComponents[1]), stringToFloat32(lineComponents[2]), stringToFloat32(lineComponents[3]))
 			currentVertices = append(currentVertices, vertex)
-		case "endloop":
-			// close a loop
 		case "endfacet":
 			face := modelFace{
 				Point1: currentVertices[0],
@@ -55,8 +48,7 @@ func LoadASCIISTL(modelPath string) ([]modelFace, error) {
 			}
 			faces = append(faces, face)
 			currentVertices = make([]rl.Vector3, 0, 3)
-		case "endsolid":
-			// end of an object.
+		default:
 		}
 	}
 	if err := fileScanner.Err(); err != nil {
