@@ -13,6 +13,9 @@ import (
 )
 
 func main() {
+
+	rl.SetConfigFlags(rl.FlagWindowResizable)
+
 	rl.InitWindow(800, 600, "puca")
 	rl.SetTargetFPS(60)
 
