@@ -43,10 +43,23 @@ func main() {
 
 	switch fileFormat {
 	case "stl":
-		modelTriangles, err = LoadASCIISTL(modelPath)
+		isAscii, err := isASCIISTL(modelPath)
 		if err != nil {
 			modelLoaded = false
-			modelPath = "Error loading model."
+			modelPath = "Error checking if stl is ascii or binary."
+		}
+		if isAscii {
+			modelTriangles, err = LoadASCIISTL(modelPath)
+			if err != nil {
+				modelLoaded = false
+				modelPath = "Error loading model."
+			}
+		} else {
+			modelTriangles, err = LoadBinarySTL(modelPath)
+			if err != nil {
+				modelLoaded = false
+				modelPath = "Error loading model."
+			}
 		}
 	case "obj":
 		modelTriangles, err = loadObjText(modelPath)
@@ -143,6 +156,22 @@ func ScaleModel(faces []modelFace, scale float32) []modelFace {
 		faces[index] = face
 	}
 	return faces
+}
+
+func isASCIISTL(filename string) (bool, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		return false, err
+	}
+
+	return strings.HasPrefix(strings.ToLower(line), "solid"), nil
 }
 
 type BoundingBox struct {
