@@ -310,7 +310,7 @@ func loadObjText(modelPath string) ([]modelFace, error) {
 				Normal: faceNormal,
 			})
 		default:
-			fmt.Sprintln("Unknown line type %s", line)
+			fmt.Println(fmt.Sprintf("Unknown line type %s", line))
 		}
 	}
 
@@ -347,9 +347,6 @@ func getFaceNormal(normal1 rl.Vector3, normal2 rl.Vector3, normal3 rl.Vector3) r
 	xNormal := (normal1.X + normal2.X + normal3.X) / 3
 	yNormal := (normal1.Y + normal2.Y + normal3.Y) / 3
 	zNormal := (normal1.Z + normal2.Z + normal3.Z) / 3
-
-	fmt.Sprintf("x normal %f, ynormal %f, znormal %f", xNormal, yNormal, zNormal)
-
 	return rl.NewVector3(xNormal, yNormal, zNormal)
 }
 
