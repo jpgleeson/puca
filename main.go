@@ -16,7 +16,7 @@ func main() {
 
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 
-	rl.InitWindow(800, 600, "puca")
+	rl.InitWindow(1280, 928, "puca")
 	rl.SetTargetFPS(60)
 
 	var modelPath string
@@ -39,7 +39,79 @@ func main() {
 	modelOffset := rl.NewVector3(0, 0, 0)
 
 	var modelTriangles []modelFace
+	var faceColours map[modelFace]rl.Color
+
+	modelTriangles, faceColours, modelLoaded = loadModel(modelPath)
+
+	defer rl.CloseWindow()
+
+	for !rl.WindowShouldClose() {
+
+		if rl.IsFileDropped() {
+			fileName := rl.LoadDroppedFiles()[0]
+			modelTriangles, faceColours, modelLoaded = loadModel(fileName)
+			if modelLoaded {
+				modelPath = fileName
+			}
+			modelOffset = rl.NewVector3(0, 0, 0)
+			rl.UnloadDroppedFiles()
+		}
+
+		if rl.IsKeyDown(rl.KeyRight) {
+			theta += 0.01
+		}
+		if rl.IsKeyDown(rl.KeyLeft) {
+			theta -= 0.01
+		}
+		if rl.IsKeyDown(rl.KeyUp) {
+			phi += 0.01
+		}
+		if rl.IsKeyDown(rl.KeyDown) {
+			phi -= 0.01
+		}
+		if rl.IsKeyPressed(rl.KeyPageUp) {
+			distance -= 10
+		}
+		if rl.IsKeyPressed(rl.KeyPageDown) {
+			distance += 10
+		}
+
+		if rl.IsKeyPressed(rl.KeyW) {
+			modelOffset.X += 10
+		}
+		if rl.IsKeyPressed(rl.KeyS) {
+			modelOffset.X -= 10
+		}
+		if rl.IsKeyPressed(rl.KeyA) {
+			modelOffset.Z += 10
+		}
+		if rl.IsKeyPressed(rl.KeyD) {
+			modelOffset.Z -= 10
+		}
+
+		camera.Position.X = distance * float32(math.Sin(theta)*math.Cos(phi))
+		camera.Position.Y = distance * float32(math.Sin(phi))
+		camera.Position.Z = distance * float32(math.Cos(theta)*math.Cos(phi))
+
+		rl.BeginDrawing()
+		rl.ClearBackground(rl.LightGray)
+		rl.BeginMode3D(camera)
+		rl.DrawGrid(20, 10.0)
+		if modelLoaded {
+			for _, face := range modelTriangles {
+				rl.DrawTriangle3D(OffsetVector3(face.Point1, modelOffset), OffsetVector3(face.Point2, modelOffset), OffsetVector3(face.Point3, modelOffset), faceColours[face])
+			}
+		}
+		rl.EndMode3D()
+		rl.DrawText(modelPath, 10, 10, 12, rl.Black)
+		rl.EndDrawing()
+	}
+}
+
+func loadModel(modelPath string) ([]modelFace, map[modelFace]rl.Color, bool) {
+	var modelTriangles []modelFace
 	var err error
+	modelLoaded := true
 
 	splitStr := strings.Split(modelPath, ".")
 	fileFormat := splitStr[len(splitStr)-1]
@@ -96,59 +168,7 @@ func main() {
 
 	faceColours := makeNormalColourCache(modelTriangles)
 
-	defer rl.CloseWindow()
-
-	for !rl.WindowShouldClose() {
-
-		if rl.IsKeyDown(rl.KeyRight) {
-			theta += 0.01
-		}
-		if rl.IsKeyDown(rl.KeyLeft) {
-			theta -= 0.01
-		}
-		if rl.IsKeyDown(rl.KeyUp) {
-			phi += 0.01
-		}
-		if rl.IsKeyDown(rl.KeyDown) {
-			phi -= 0.01
-		}
-		if rl.IsKeyPressed(rl.KeyPageUp) {
-			distance -= 10
-		}
-		if rl.IsKeyPressed(rl.KeyPageDown) {
-			distance += 10
-		}
-
-		if rl.IsKeyPressed(rl.KeyW) {
-			modelOffset.X += 10
-		}
-		if rl.IsKeyPressed(rl.KeyS) {
-			modelOffset.X -= 10
-		}
-		if rl.IsKeyPressed(rl.KeyA) {
-			modelOffset.Z += 10
-		}
-		if rl.IsKeyPressed(rl.KeyD) {
-			modelOffset.Z -= 10
-		}
-
-		camera.Position.X = distance * float32(math.Sin(theta)*math.Cos(phi))
-		camera.Position.Y = distance * float32(math.Sin(phi))
-		camera.Position.Z = distance * float32(math.Cos(theta)*math.Cos(phi))
-
-		rl.BeginDrawing()
-		rl.ClearBackground(rl.LightGray)
-		rl.BeginMode3D(camera)
-		rl.DrawGrid(20, 10.0)
-		if modelLoaded {
-			for _, face := range modelTriangles {
-				rl.DrawTriangle3D(OffsetVector3(face.Point1, modelOffset), OffsetVector3(face.Point2, modelOffset), OffsetVector3(face.Point3, modelOffset), faceColours[face])
-			}
-		}
-		rl.EndMode3D()
-		rl.DrawText(modelPath, 10, 10, 12, rl.Black)
-		rl.EndDrawing()
-	}
+	return modelTriangles, faceColours, modelLoaded
 }
 
 func ScaleModel(faces []modelFace, scale float32) []modelFace {
