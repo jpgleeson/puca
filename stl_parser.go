@@ -15,6 +15,7 @@ import (
 )
 
 func LoadASCIISTL(modelPath string) ([]modelFace, error) {
+	fmt.Println("Loading ASCII stl")
 
 	faces := make([]modelFace, 0)
 
@@ -60,14 +61,15 @@ func LoadASCIISTL(modelPath string) ([]modelFace, error) {
 	return faces, nil
 }
 
-func LoadBinarySTL(modelPath string) ([]modelFace, error) {
+func LoadBinarySTL(modelPath string) ([]rl.Vector3, []rl.Vector3, error) {
+	fmt.Println("Loading binary stl")
 
-	faces := make([]modelFace, 0)
+	// faces := make([]modelFace, 0)
 
 	file, err := os.Open(modelPath)
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return nil, nil, err
 	}
 	defer file.Close()
 
@@ -77,23 +79,26 @@ func LoadBinarySTL(modelPath string) ([]modelFace, error) {
 	_, err = file.Read(buffer)
 	if err != nil && err != io.EOF {
 		log.Fatal(err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	buffer = make([]byte, 4)
 	_, err = file.Read(buffer)
 	if err != nil && err != io.EOF {
 		log.Fatal(err)
-		return nil, err
+		return nil, nil, err
 	}
 	numberOfTriangles := binary.LittleEndian.Uint32(buffer)
+
+	vertices := make([]rl.Vector3, numberOfTriangles*3)
+	normals := make([]rl.Vector3, numberOfTriangles)
 
 	for i := 0; i < int(numberOfTriangles); i++ {
 		buffer = make([]byte, 50)
 		_, err = file.Read(buffer)
 		if err != nil && err != io.EOF {
 			log.Fatal(err)
-			return nil, err
+			return nil, nil, err
 		}
 		normalSlice := buffer[0:11]
 		vertex1Slice := buffer[12:24]
@@ -117,7 +122,7 @@ func LoadBinarySTL(modelPath string) ([]modelFace, error) {
 		}
 		normal := rl.NewVector3(normalComponents[0], normalComponents[1], normalComponents[2])
 
-		vertices := make([]rl.Vector3, 3)
+		triangleVertices := make([]rl.Vector3, 3)
 
 		for index, slice := range vertexSlices {
 			vertex := make([]float32, 3)
@@ -128,16 +133,14 @@ func LoadBinarySTL(modelPath string) ([]modelFace, error) {
 					log.Fatal("binary.Read failed:", err)
 				}
 			}
-			vertices[index] = rl.NewVector3(vertex[0], vertex[1], vertex[2])
+			triangleVertices[index] = rl.NewVector3(vertex[0], vertex[1], vertex[2])
 		}
 
-		faces = append(faces, modelFace{
-			Point1: vertices[0],
-			Point2: vertices[1],
-			Point3: vertices[2],
-			Normal: normal,
-		})
+		vertices = append(vertices, triangleVertices...)
+		normals = append(normals, normal)
 	}
 
-	return faces, nil
+	fmt.Println(fmt.Sprintf("Number of vertices: %d", len(vertices)))
+	fmt.Println(fmt.Sprintf("Number of triangles: %d", numberOfTriangles))
+	return vertices, normals, nil
 }

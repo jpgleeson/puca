@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unsafe"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -41,7 +42,45 @@ func main() {
 	var modelTriangles []modelFace
 	var faceColours map[modelFace]rl.Color
 
-	modelTriangles, faceColours, modelLoaded = loadModel(modelPath)
+	var modelVertices []rl.Vector3
+	var modelNormals []rl.Vector3
+
+	meshLoaded := true
+
+	modelPath = "/home/jack/Documents/6mm Scenery STLs/Asian City 1/Unsupported/Asian_City_1_Building_A.stl"
+
+	modelVertices, modelNormals, modelLoaded = loadModel(modelPath)
+
+	var vertices []float32
+	for _, vertex := range modelVertices {
+		vertices = append(vertices, vertex.X, vertex.Y, vertex.Z)
+	}
+
+	// Convert the slice of float32 to a pointer to the first element
+	verticesPtr := (*float32)(&vertices[0])
+
+	var normals []float32
+	for _, vertex := range modelNormals {
+		normals = append(normals, vertex.X, vertex.Y, vertex.Z)
+	}
+
+	// Convert the slice of float32 to a pointer to the first element
+	normalsPtr := (*float32)(unsafe.Pointer(&normals[0]))
+
+	modelMesh := rl.Mesh{
+		VertexCount: int32(len(vertices)),
+		Vertices:    verticesPtr,
+		Normals:     normalsPtr,
+	}
+
+	defaultMaterial := rl.LoadMaterialDefault()
+	translation := rl.MatrixTranslate(0.0, 0.0, -5.0)
+
+	// Create a rotation matrix
+	rotation := rl.MatrixRotate(rl.NewVector3(1.0, 0.0, 0.0), 0.1)
+
+	// Combine translation and rotation into a single transformation matrix
+	modelTransform := rl.MatrixMultiply(translation, rotation)
 
 	defer rl.CloseWindow()
 
@@ -49,7 +88,7 @@ func main() {
 
 		if rl.IsFileDropped() {
 			fileName := rl.LoadDroppedFiles()[0]
-			modelTriangles, faceColours, modelLoaded = loadModel(fileName)
+			modelVertices, modelNormals, modelLoaded = loadModel(fileName)
 			if modelLoaded {
 				modelPath = fileName
 			}
@@ -98,8 +137,12 @@ func main() {
 		rl.BeginMode3D(camera)
 		rl.DrawGrid(20, 10.0)
 		if modelLoaded {
-			for _, face := range modelTriangles {
-				rl.DrawTriangle3D(OffsetVector3(face.Point1, modelOffset), OffsetVector3(face.Point2, modelOffset), OffsetVector3(face.Point3, modelOffset), faceColours[face])
+			if meshLoaded {
+				rl.DrawMesh(modelMesh, defaultMaterial, modelTransform)
+			} else {
+				for _, face := range modelTriangles {
+					rl.DrawTriangle3D(OffsetVector3(face.Point1, modelOffset), OffsetVector3(face.Point2, modelOffset), OffsetVector3(face.Point3, modelOffset), faceColours[face])
+				}
 			}
 		}
 		rl.EndMode3D()
@@ -108,8 +151,10 @@ func main() {
 	}
 }
 
-func loadModel(modelPath string) ([]modelFace, map[modelFace]rl.Color, bool) {
+func loadModel(modelPath string) ([]rl.Vector3, []rl.Vector3, bool) {
 	var modelTriangles []modelFace
+	var modelVertices []rl.Vector3
+	var modelNormals []rl.Vector3
 	var err error
 	modelLoaded := true
 
@@ -130,7 +175,7 @@ func loadModel(modelPath string) ([]modelFace, map[modelFace]rl.Color, bool) {
 				modelPath = "Error loading model."
 			}
 		} else {
-			modelTriangles, err = LoadBinarySTL(modelPath)
+			modelVertices, modelNormals, err = LoadBinarySTL(modelPath)
 			if err != nil {
 				modelLoaded = false
 				modelPath = "Error loading model."
@@ -166,9 +211,9 @@ func loadModel(modelPath string) ([]modelFace, map[modelFace]rl.Color, bool) {
 		}
 	}
 
-	faceColours := makeNormalColourCache(modelTriangles)
+	// faceColours := makeNormalColourCache(modelTriangles)
 
-	return modelTriangles, faceColours, modelLoaded
+	return modelVertices, modelNormals, modelLoaded
 }
 
 func ScaleModel(faces []modelFace, scale float32) []modelFace {
