@@ -106,7 +106,7 @@ func main() {
 		rl.BeginMode3D(camera)
 		rl.DrawGrid(40, 10.0)
 		if modelLoaded {
-			rl.DrawModel(model, position, scale, rl.Gray)
+			rl.DrawModel(model, position, scale, rl.White)
 		}
 		rl.EndMode3D()
 		rl.DrawText(modelPath, 10, 10, 12, rl.Black)
@@ -169,9 +169,9 @@ func loadModel(modelPath string) (rl.Model, bool) {
 		meshNormals = append(meshNormals, 100*face.Normal.Y)
 		meshNormals = append(meshNormals, face.Normal.Z)
 
-		r := uint8((face.Normal.X + 1.0) * 1)
-		g := uint8((face.Normal.Y + 1.0) * 127.5)
-		b := uint8((face.Normal.Z + 1.0) * 127.5)
+		r := uint8((face.Normal.X + 1.0) * 127.5)
+		g := uint8((face.Normal.X + 1.0) * 127.5)
+		b := uint8((face.Normal.X + 1.0) * 127.5)
 
 		for i := 0; i < 3; i++ {
 			meshColours = append(meshColours, r, g, b, 255)
