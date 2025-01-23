@@ -38,17 +38,13 @@ func main() {
 	theta := float64(0.2)
 	phi := float64(0.2)
 
-	var mesh rl.Mesh
-	material := rl.LoadMaterialDefault()
+	position := rl.Vector3Zero()
+	var scale float32
+	scale = 1
 
-	shaderLoc := rl.GetShaderLocation(material.Shader, "viewPos")
+	var model rl.Model
 
-	material.Maps.Color = rl.NewColor(180, 180, 180, 255) // Neutral gray
-	material.Maps.Color = rl.NewColor(255, 255, 2, 25)    // White specular
-	material.Maps.Color = rl.NewColor(128, 128, 255, 255) // Normal map
-	material.Shader.Locs = &shaderLoc
-
-	mesh, modelLoaded = loadModel(modelPath)
+	model, modelLoaded = loadModel(modelPath)
 
 	defer rl.CloseWindow()
 
@@ -56,8 +52,9 @@ func main() {
 
 		if rl.IsFileDropped() {
 			fileName := rl.LoadDroppedFiles()[0]
-			rl.UnloadMesh(&mesh)
-			mesh, modelLoaded = loadModel(fileName)
+			scale = 1
+			rl.UnloadMesh(&model.GetMeshes()[0])
+			model, modelLoaded = loadModel(fileName)
 			if modelLoaded {
 				modelPath = fileName
 			}
@@ -90,6 +87,16 @@ func main() {
 			camera.Target.Y -= 0.1
 		}
 
+		if rl.IsKeyReleased(rl.KeyE) {
+			scale *= 1.1
+		}
+		if rl.IsKeyReleased(rl.KeyQ) {
+			scale *= 0.9
+			if scale < 0.1 {
+				scale = 0.1
+			}
+		}
+
 		camera.Position.X = distance * float32(math.Sin(theta)*math.Cos(phi))
 		camera.Position.Y = distance * float32(math.Sin(phi))
 		camera.Position.Z = distance * float32(math.Cos(theta)*math.Cos(phi))
@@ -99,7 +106,7 @@ func main() {
 		rl.BeginMode3D(camera)
 		rl.DrawGrid(40, 10.0)
 		if modelLoaded {
-			rl.DrawMesh(mesh, material, rl.MatrixIdentity())
+			rl.DrawModel(model, position, scale, rl.Gray)
 		}
 		rl.EndMode3D()
 		rl.DrawText(modelPath, 10, 10, 12, rl.Black)
@@ -107,7 +114,7 @@ func main() {
 	}
 }
 
-func loadModel(modelPath string) (rl.Mesh, bool) {
+func loadModel(modelPath string) (rl.Model, bool) {
 	var modelTriangles []modelFace
 	var err error
 	modelLoaded := true
@@ -145,6 +152,7 @@ func loadModel(modelPath string) (rl.Mesh, bool) {
 
 	var meshVertices []float32
 	var meshNormals []float32
+	var meshColours []uint8
 	var modelPoints []rl.Vector3
 	for _, face := range modelTriangles {
 		meshVertices = append(meshVertices, face.Point1.X)
@@ -160,6 +168,14 @@ func loadModel(modelPath string) (rl.Mesh, bool) {
 		meshNormals = append(meshNormals, 100*-face.Normal.X)
 		meshNormals = append(meshNormals, 100*face.Normal.Y)
 		meshNormals = append(meshNormals, face.Normal.Z)
+
+		r := uint8((face.Normal.X + 1.0) * 1)
+		g := uint8((face.Normal.Y + 1.0) * 127.5)
+		b := uint8((face.Normal.Z + 1.0) * 127.5)
+
+		for i := 0; i < 3; i++ {
+			meshColours = append(meshColours, r, g, b, 255)
+		}
 
 		modelPoints = append(modelPoints, face.Point2)
 		modelPoints = append(modelPoints, face.Point2)
@@ -188,10 +204,14 @@ func loadModel(modelPath string) (rl.Mesh, bool) {
 
 	mesh.Vertices = unsafe.SliceData(meshVertices)
 	mesh.Normals = unsafe.SliceData(meshNormals)
+	mesh.Colors = unsafe.SliceData(meshColours)
 
 	rl.UploadMesh(&mesh, false)
 
-	return mesh, modelLoaded
+	model := rl.LoadModelFromMesh(mesh)
+	rl.SetModelMeshMaterial(&model, 0, 0)
+
+	return model, modelLoaded
 }
 
 func ScaleModel(faces []modelFace, scale float32) []modelFace {
