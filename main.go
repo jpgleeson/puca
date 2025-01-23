@@ -56,6 +56,7 @@ func main() {
 
 		if rl.IsFileDropped() {
 			fileName := rl.LoadDroppedFiles()[0]
+			rl.UnloadMesh(&mesh)
 			mesh, modelLoaded = loadModel(fileName)
 			if modelLoaded {
 				modelPath = fileName
