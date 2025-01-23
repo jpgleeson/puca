@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unsafe"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -18,6 +19,7 @@ func main() {
 
 	rl.InitWindow(1280, 928, "puca")
 	rl.SetTargetFPS(60)
+	rl.Viewport(0, 0, 1280, 928)
 
 	var modelPath string
 	if len(os.Args) > 1 {
@@ -36,12 +38,17 @@ func main() {
 	theta := float64(0.2)
 	phi := float64(0.2)
 
-	modelOffset := rl.NewVector3(0, 0, 0)
+	var mesh rl.Mesh
+	material := rl.LoadMaterialDefault()
 
-	var modelTriangles []modelFace
-	var faceColours map[modelFace]rl.Color
+	shaderLoc := rl.GetShaderLocation(material.Shader, "viewPos")
 
-	modelTriangles, faceColours, modelLoaded = loadModel(modelPath)
+	material.Maps.Color = rl.NewColor(180, 180, 180, 255) // Neutral gray
+	material.Maps.Color = rl.NewColor(255, 255, 2, 25)    // White specular
+	material.Maps.Color = rl.NewColor(128, 128, 255, 255) // Normal map
+	material.Shader.Locs = &shaderLoc
+
+	mesh, modelLoaded = loadModel(modelPath)
 
 	defer rl.CloseWindow()
 
@@ -49,11 +56,10 @@ func main() {
 
 		if rl.IsFileDropped() {
 			fileName := rl.LoadDroppedFiles()[0]
-			modelTriangles, faceColours, modelLoaded = loadModel(fileName)
+			mesh, modelLoaded = loadModel(fileName)
 			if modelLoaded {
 				modelPath = fileName
 			}
-			modelOffset = rl.NewVector3(0, 0, 0)
 			rl.UnloadDroppedFiles()
 		}
 
@@ -76,17 +82,11 @@ func main() {
 			distance += 10
 		}
 
-		if rl.IsKeyPressed(rl.KeyW) {
-			modelOffset.X += 10
+		if rl.IsKeyDown(rl.KeyW) {
+			camera.Target.Y += 0.1
 		}
-		if rl.IsKeyPressed(rl.KeyS) {
-			modelOffset.X -= 10
-		}
-		if rl.IsKeyPressed(rl.KeyA) {
-			modelOffset.Z += 10
-		}
-		if rl.IsKeyPressed(rl.KeyD) {
-			modelOffset.Z -= 10
+		if rl.IsKeyDown(rl.KeyS) {
+			camera.Target.Y -= 0.1
 		}
 
 		camera.Position.X = distance * float32(math.Sin(theta)*math.Cos(phi))
@@ -96,11 +96,9 @@ func main() {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.LightGray)
 		rl.BeginMode3D(camera)
-		rl.DrawGrid(20, 10.0)
+		rl.DrawGrid(40, 10.0)
 		if modelLoaded {
-			for _, face := range modelTriangles {
-				rl.DrawTriangle3D(OffsetVector3(face.Point1, modelOffset), OffsetVector3(face.Point2, modelOffset), OffsetVector3(face.Point3, modelOffset), faceColours[face])
-			}
+			rl.DrawMesh(mesh, material, rl.MatrixIdentity())
 		}
 		rl.EndMode3D()
 		rl.DrawText(modelPath, 10, 10, 12, rl.Black)
@@ -108,7 +106,7 @@ func main() {
 	}
 }
 
-func loadModel(modelPath string) ([]modelFace, map[modelFace]rl.Color, bool) {
+func loadModel(modelPath string) (rl.Mesh, bool) {
 	var modelTriangles []modelFace
 	var err error
 	modelLoaded := true
@@ -144,9 +142,25 @@ func loadModel(modelPath string) ([]modelFace, map[modelFace]rl.Color, bool) {
 		}
 	}
 
+	var meshVertices []float32
+	var meshNormals []float32
 	var modelPoints []rl.Vector3
 	for _, face := range modelTriangles {
-		modelPoints = append(modelPoints, face.Point1)
+		meshVertices = append(meshVertices, face.Point1.X)
+		meshVertices = append(meshVertices, face.Point1.Y)
+		meshVertices = append(meshVertices, face.Point1.Z)
+		meshVertices = append(meshVertices, face.Point2.X)
+		meshVertices = append(meshVertices, face.Point2.Y)
+		meshVertices = append(meshVertices, face.Point2.Z)
+		meshVertices = append(meshVertices, face.Point3.X)
+		meshVertices = append(meshVertices, face.Point3.Y)
+		meshVertices = append(meshVertices, face.Point3.Z)
+
+		meshNormals = append(meshNormals, 100*-face.Normal.X)
+		meshNormals = append(meshNormals, 100*face.Normal.Y)
+		meshNormals = append(meshNormals, face.Normal.Z)
+
+		modelPoints = append(modelPoints, face.Point2)
 		modelPoints = append(modelPoints, face.Point2)
 		modelPoints = append(modelPoints, face.Point3)
 	}
@@ -158,17 +172,25 @@ func loadModel(modelPath string) ([]modelFace, map[modelFace]rl.Color, bool) {
 	maxSpan := math.Max(xSpan, ySpan)
 	maxSpan = math.Max(maxSpan, zSpan)
 
-	if maxSpan > 100 {
+	if maxSpan > 200 {
 		// clamping to 100 units in size
-		factor := math.Floor(maxSpan / 100)
+		factor := math.Floor(maxSpan / 200)
 		if factor != 0 {
 			ScaleModel(modelTriangles, float32(1/factor))
 		}
 	}
 
-	faceColours := makeNormalColourCache(modelTriangles)
+	mesh := rl.Mesh{
+		TriangleCount: int32(len(modelTriangles)),
+		VertexCount:   int32(len(modelPoints)),
+	}
 
-	return modelTriangles, faceColours, modelLoaded
+	mesh.Vertices = unsafe.SliceData(meshVertices)
+	mesh.Normals = unsafe.SliceData(meshNormals)
+
+	rl.UploadMesh(&mesh, false)
+
+	return mesh, modelLoaded
 }
 
 func ScaleModel(faces []modelFace, scale float32) []modelFace {
@@ -310,7 +332,7 @@ func loadObjText(modelPath string) ([]modelFace, error) {
 				Normal: faceNormal,
 			})
 		default:
-			fmt.Println(fmt.Sprintf("Unknown line type %s", line))
+			fmt.Printf("Unknown line type %s\n", line)
 		}
 	}
 
@@ -331,13 +353,17 @@ func stringToFloat32(input string) float32 {
 }
 
 func getVertexAndNormalIndices(components []string) (int, int, error) {
+	var vertex, normal int
+
 	vertex, err := strconv.Atoi(components[0])
 	if err != nil {
 		fmt.Println("Error converting vertex to int")
 	}
-	normal, err := strconv.Atoi(components[1])
-	if err != nil {
-		fmt.Println("Error converting normal to int")
+	if len(components) > 1 {
+		normal, err = strconv.Atoi(components[1])
+		if err != nil {
+			fmt.Println("Error converting normal to int")
+		}
 	}
 
 	return vertex, normal, err
@@ -348,18 +374,4 @@ func getFaceNormal(normal1 rl.Vector3, normal2 rl.Vector3, normal3 rl.Vector3) r
 	yNormal := (normal1.Y + normal2.Y + normal3.Y) / 3
 	zNormal := (normal1.Z + normal2.Z + normal3.Z) / 3
 	return rl.NewVector3(xNormal, yNormal, zNormal)
-}
-
-func makeNormalColourCache(faces []modelFace) map[modelFace]rl.Color {
-	faceColours := make(map[modelFace]rl.Color)
-	for _, face := range faces {
-		faceColour := rl.NewColor(122, 122, 122, 255)
-
-		faceColour.R = faceColour.R + uint8(100*face.Normal.Y)
-		faceColour.G = faceColour.G + uint8(100*face.Normal.Y)
-		faceColour.B = faceColour.B + uint8(100*face.Normal.Y)
-
-		faceColours[face] = faceColour
-	}
-	return faceColours
 }
