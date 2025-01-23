@@ -199,16 +199,6 @@ func loadModel(modelPath string) (rl.Model, bool) {
 	return model, modelLoaded
 }
 
-func ScaleModel(faces []modelFace, scale float32) []modelFace {
-	for index, face := range faces {
-		face.Point1 = ScaleVector3(face.Point1, scale)
-		face.Point2 = ScaleVector3(face.Point2, scale)
-		face.Point3 = ScaleVector3(face.Point3, scale)
-		faces[index] = face
-	}
-	return faces
-}
-
 func isASCIISTL(filename string) (bool, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -229,47 +219,11 @@ type BoundingBox struct {
 	Min, Max rl.Vector3
 }
 
-func CalculateBoundingBox(objects []rl.Vector3) BoundingBox {
-	if len(objects) == 0 {
-		return BoundingBox{}
-	}
-
-	min := rl.Vector3{X: objects[0].X, Y: objects[0].Y, Z: objects[0].Z}
-	max := rl.Vector3{X: objects[0].X, Y: objects[0].Y, Z: objects[0].Z}
-
-	// gross
-	for _, obj := range objects {
-		min.X = float32(math.Min(float64(min.X), float64(obj.X)))
-		min.Y = float32(math.Min(float64(min.Y), float64(obj.Y)))
-		min.Z = float32(math.Min(float64(min.Z), float64(obj.Z)))
-
-		max.X = float32(math.Max(float64(max.X), float64(obj.X)))
-		max.Y = float32(math.Max(float64(max.Y), float64(obj.Y)))
-		max.Z = float32(math.Max(float64(max.Z), float64(obj.Z)))
-	}
-
-	return BoundingBox{Min: min, Max: max}
-}
-
 type modelFace struct {
 	Point1 rl.Vector3
 	Point2 rl.Vector3
 	Point3 rl.Vector3
 	Normal rl.Vector3
-}
-
-func ScaleVector3(vector rl.Vector3, scale float32) rl.Vector3 {
-	vector.X = vector.X * scale
-	vector.Y = vector.Y * scale
-	vector.Z = vector.Z * scale
-	return vector
-}
-
-func OffsetVector3(vector rl.Vector3, offset rl.Vector3) rl.Vector3 {
-	vector.X = vector.X + offset.X
-	vector.Y = vector.Y + offset.Y
-	vector.Z = vector.Z + offset.Z
-	return vector
 }
 
 func loadObjText(modelPath string) ([]modelFace, error) {
