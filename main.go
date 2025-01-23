@@ -19,7 +19,6 @@ func main() {
 
 	rl.InitWindow(1280, 928, "puca")
 	rl.SetTargetFPS(60)
-	rl.Viewport(0, 0, 1280, 928)
 
 	var modelPath string
 	if len(os.Args) > 1 {
@@ -41,6 +40,12 @@ func main() {
 	position := rl.Vector3Zero()
 	var scale float32
 	scale = 1
+
+	// Handle scaling - without this we don't get the full window drawn to if scale isn't 100%
+	width := rl.GetRenderWidth()
+	height := rl.GetRenderHeight()
+	windowScale := rl.GetWindowScaleDPI()
+	rl.Viewport(0, 0, int32(float32(width)*windowScale.X), int32(float32(height)*windowScale.Y))
 
 	var model rl.Model
 
@@ -100,6 +105,14 @@ func main() {
 		camera.Position.X = distance * float32(math.Sin(theta)*math.Cos(phi))
 		camera.Position.Y = distance * float32(math.Sin(phi))
 		camera.Position.Z = distance * float32(math.Cos(theta)*math.Cos(phi))
+
+		// Only redo the viewport for scaling if the window was resized
+		if rl.IsWindowResized() {
+			width = rl.GetRenderWidth()
+			height = rl.GetRenderHeight()
+			windowScale = rl.GetWindowScaleDPI()
+			rl.Viewport(0, 0, int32(float32(width)*windowScale.X), int32(float32(height)*windowScale.Y))
+		}
 
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.LightGray)
