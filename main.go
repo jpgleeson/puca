@@ -181,21 +181,6 @@ func loadModel(modelPath string) (rl.Model, bool) {
 		modelPoints = append(modelPoints, face.Point2)
 		modelPoints = append(modelPoints, face.Point3)
 	}
-	boundingBox := CalculateBoundingBox(modelPoints)
-	xSpan := math.Abs(float64(boundingBox.Min.X)) + math.Abs(float64(boundingBox.Max.X))
-	ySpan := math.Abs(float64(boundingBox.Min.Y)) + math.Abs(float64(boundingBox.Max.Y))
-	zSpan := math.Abs(float64(boundingBox.Min.Z)) + math.Abs(float64(boundingBox.Max.Z))
-
-	maxSpan := math.Max(xSpan, ySpan)
-	maxSpan = math.Max(maxSpan, zSpan)
-
-	if maxSpan > 200 {
-		// clamping to 100 units in size
-		factor := math.Floor(maxSpan / 200)
-		if factor != 0 {
-			ScaleModel(modelTriangles, float32(1/factor))
-		}
-	}
 
 	mesh := rl.Mesh{
 		TriangleCount: int32(len(modelTriangles)),
