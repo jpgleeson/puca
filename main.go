@@ -17,7 +17,7 @@ func main() {
 
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 
-	rl.InitWindow(1280, 928, "puca")
+	rl.InitWindow(1280, 928, "púca")
 	rl.SetTargetFPS(60)
 
 	var modelPath string
