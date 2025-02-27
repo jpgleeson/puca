@@ -39,13 +39,13 @@ func LoadASCIISTL(modelPath string) ([]modelFace, error) {
 		case "facet":
 			normal = rl.NewVector3(stringToFloat32(lineComponents[2]), stringToFloat32(lineComponents[3]), stringToFloat32(lineComponents[4]))
 		case "vertex":
-			vertex := rl.NewVector3(stringToFloat32(lineComponents[1]), stringToFloat32(lineComponents[2]), stringToFloat32(lineComponents[3]))
+			vertex := rl.NewVector3(stringToFloat32(lineComponents[1]), stringToFloat32(lineComponents[3]), stringToFloat32(lineComponents[2]))
 			currentVertices = append(currentVertices, vertex)
 		case "endfacet":
 			face := modelFace{
 				Point1: currentVertices[0],
-				Point2: currentVertices[1],
-				Point3: currentVertices[2],
+				Point2: currentVertices[2],
+				Point3: currentVertices[1],
 				Normal: normal,
 			}
 			faces = append(faces, face)
@@ -128,13 +128,13 @@ func LoadBinarySTL(modelPath string) ([]modelFace, error) {
 					log.Fatal("binary.Read failed:", err)
 				}
 			}
-			vertices[index] = rl.NewVector3(vertex[0], vertex[1], vertex[2])
+			vertices[index] = rl.NewVector3(vertex[0], vertex[2], vertex[1])
 		}
 
 		faces = append(faces, modelFace{
 			Point1: vertices[0],
-			Point2: vertices[1],
-			Point3: vertices[2],
+			Point2: vertices[2],
+			Point3: vertices[1],
 			Normal: normal,
 		})
 	}
